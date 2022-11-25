@@ -1,0 +1,395 @@
+---
+title: "502 Project"
+output: word_document
+date: "2022-11-15"
+---
+
+```{r}
+install.packages("dplyr")
+install.packages("ggplot2")
+install.packages("reshape2")
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+```
+
+```{r}
+
+df <- read.csv("C:/Users/Aishat/Downloads/WA_Fn-UseC_-Marketing-Customer-Value-Analysis.csv/WA_Fn-UseC_-Marketing-Customer-Value-Analysis.csv")
+head(df)
+
+```
+
+```{r}
+
+is.data.frame(df)
+
+```
+
+```{r}
+dim(df)
+```
+
+
+```{r}
+
+str(df)
+
+```
+
+```{r}
+
+colnames(df)
+
+```
+# Data Cleaning
+```{r}
+colSums(sapply(df, is.na))
+```
+
+```{r}
+any(is.na(df))
+```
+
+```{r}
+df$State <- as.factor(df$State)
+is.factor(df$State)
+df$Coverage <- as.factor(df$Coverage)
+is.factor(df$Coverage)
+df$Education<- as.factor(df$Education)
+is.factor(df$Education)
+```
+```{r}
+str(df)
+```
+
+```{r}
+head(df)
+```
+
+# ANALYSIS
+# Encode conversions (default) as 0 and 1 (instead of "Yes" and "No")
+```{r}
+
+df <- df %>%
+  mutate(Response = ifelse(Response == "No", 0, 1))
+df$Response <- as.integer(df$Response)
+head(df)
+
+```
+# To calculate the Conversion/Engagement Rate
+```{r}
+
+EngagementRate <- df %>%
+  group_by(Response) %>%
+  summarize(Count=n()) %>%
+  mutate(Percentage=Count/nrow(df)*100)
+
+#transpose 
+transposed <- t(EngagementRate)
+colnames(transposed) <- EngagementRate$Response
+transposed <- transposed[-1,]
+transposed
+
+```
+
+# To Take a look at the Response rates by the different sales channels. 
+```{r}
+
+SalesChannel <- df %>%
+  group_by(Response, Sales.Channel) %>%
+  summarize(Count=n()) %>%
+  arrange(Sales.Channel)
+
+options(repr.plot.width = 20, repr.plot.height = 10)
+ggplot(SalesChannel, aes(x="", y=Count, fill=Sales.Channel)) +
+  geom_bar(stat = "identity", position = position_fill()) +
+  geom_text(aes(x=1.0, label=Count), position = position_fill(vjust=0.5)) +
+  coord_polar("y") + facet_wrap(~Response) +
+  ggtitle("Sales Channel (No, Yes)") + 
+  theme(legend.position = "right", legend.text=element_text(size=20), plot.title = element_text(size=22))
+
+```
+# Customer Conversion Rates by the States.
+```{r}
+
+conversionsState <- df %>%
+  group_by(State) %>%
+  summarize(TotalCount=n(), NumConversions=sum(Response)) %>%
+  mutate(ConversionRate=NumConversions/TotalCount*100)
+conversionsState
+
+```
+
+
+# Getting the numeric columns from the dataset
+```{r}
+
+numeric1 <-select_if(df, is.numeric)
+numeric1
+cor(numeric1)
+
+```
+
+# Plotting Scatterplot for numerical value
+```{r}
+
+pairs(numeric1)
+plot(numeric1, main ="Scatterplot matrix")
+
+```
+
+# Summary of Numerical features
+```{r}
+
+summary(numeric1)
+
+```
+
+```{r}
+
+library(corrplot)
+corrplot(cor(numeric1),
+         type = "full",
+         diag = TRUE,
+         tl.col = "black",
+         bg = "white",
+         title = "",
+         col = NULL)
+
+```
+
+## Total.Claim.Amount seems to be correlated with Monthly.Premium.Auto, Income and Customer.Lifetime.Value. So I will investigate further
+
+
+```{r}
+
+plot(df$Total.Claim.Amount, df$Monthly.Premium.Auto, main ="Total Claim Amount Vs Monthly Premium Auto", xlab = "Monthly Premium", ylab = " Total Claim",  col = "steelblue")
+
+```
+
+
+```{r}
+
+plot(df$Monthly.Premium.Auto, df$Customer.Lifetime.Value, main ="Customer Lifetime Value Vs Monthly Premium Auto", xlab = "Monthly Premium", ylab = "Customer Lifetime Value", col = "red")
+
+```
+
+
+```{r}
+
+plot(df$Total.Claim.Amount, df$Income, main ="Total Claim Amount Vs Income", xlab = "Income", ylab = "Total Claim", col = "blue")
+
+```
+
+
+```{r}
+
+plot(df$Total.Claim.Amount, df$Customer.Lifetime.Value, main ="Total Claim Amount Vs Customer Lifetime Value",xlab = "Customer Lifetime Value", ylab = "Total Claim", col = "purple")
+
+```
+
+
+```{r}
+
+summary(df)
+
+```
+
+
+# Effect of Employment Status on Customer Time Value
+```{r}
+boxplot(Customer.Lifetime.Value ~ EmploymentStatus, df,                               
+        main = "Visualization of Customer Lifetime Value Vs Employment Status",
+        xlab = "EmploymentStatus",
+        ylab = "Customer.Lifetime.Value",
+        col = "blue")
+
+```
+# Effect of Location on Customer Life Time Value
+```{r}
+boxplot(Customer.Lifetime.Value ~ Location.Code, df,                               
+        main = "Visualization of Customer Lifetime Value Vs Location Code",
+        xlab = "Location.Code",
+        ylab = "Customer.Lifetime.Value",
+        col = "steelblue")
+
+```
+
+
+```{r}
+heatmap(cor(numeric1))
+```
+
+
+
+
+
+# ANALYSIS OF CONTINOUS VARIABLES WITH CATEGORICAL VARIABLES
+
+```{r}
+lg1 <- lm(df$Total.Claim.Amount ~ df$State)
+summary(lg1)
+```
+
+```{r}
+df1<-aggregate(x = df$Total.Claim.Amount,                
+                    by = list(df$State),             
+                    FUN = sum)
+df1
+piepercent3<- round(100 * df1$x / sum(df1$x), 1)
+pie(df1$x, labels =piepercent3,
+    main = "Total Claim Amount by State",col = rainbow(length(df1$x)))
+legend("topright", c("Arizona", "Califonia", "Nevada","Oregon","Washington"),
+       cex = 0.65, fill = rainbow(length(df1$x)))
+
+
+```
+
+
+```{r}
+lg2 <- lm(df$Total.Claim.Amount ~ df$Education)
+summary(lg2)
+```
+
+```{r}
+df2 <-aggregate(x = df$Total.Claim.Amount,                
+                    by = list(df$Education),              
+                    FUN = sum)
+df2
+piepercent4<- round(100 * df2$x / sum(df2$x), 1)
+pie(df2$x, labels =piepercent4,
+    main = "Total Claim Amount Vs Education",col = rainbow(length(df2$x)))
+legend("topright", c("Bachelor", "College", "Doctor","High Sch or Below","Master"),
+       cex = 0.65, fill = rainbow(length(df2$x)))
+```
+
+
+```{r}
+lg3 <- lm(df$Total.Claim.Amount ~ df$Coverage)
+summary(lg3)
+```
+
+```{r}
+
+df3 <- aggregate(x = df$Total.Claim.Amount, by = list(df$Coverage), FUN = sum)
+piepercent1 <- round(100 * df3$x / sum(df3$x), 1) 
+pie(df3$x, labels =piepercent1,
+    main = "Total Claim Amount by Coverage",col = rainbow(length(df3$x)))
+legend("topright", c("Basic", "Extended", "Premium"), 
+       cex = 0.8, fill = rainbow(length(df3$x)))
+
+```
+
+# Contigency tables for categorical Variables
+
+```{r}
+cont.table1 <- table(df$Coverage, df$Education)
+cont.table1
+```
+
+
+```{r}
+ggplot(df, aes(x=Coverage, y=Education, fill=Total.Claim.Amount)) + geom_tile()
+```
+
+
+```{r}
+cs.1 <- chisq.test(cont.table1)
+cs.1
+```
+
+#Multiple Linear Regression
+
+```{r}
+model1 <- lm(Total.Claim.Amount ~ Monthly.Premium.Auto + Coverage + Education, data = df)
+anova(model1); summary(model1)
+```
+
+```{r}
+model2 <- lm(Total.Claim.Amount ~ Income + Monthly.Premium.Auto + Education + Coverage, data = df)
+anova(model2); summary(model2)
+```
+
+```{r}
+model3 <- lm(Total.Claim.Amount ~ Customer.Lifetime.Value + Education + Coverage, data = df)
+anova(model3); summary(model3)
+```
+
+
+```{r}
+model4 <- lm(Total.Claim.Amount ~ Monthly.Premium.Auto + Income + Customer.Lifetime.Value + Education + Coverage, data = df)
+anova(model4); summary(model4)
+```
+
+```{r}
+model5 <- lm(Total.Claim.Amount ~ Income + Monthly.Premium.Auto + Customer.Lifetime.Value + Response + Education + Coverage, data = df)
+anova(model5); summary(model5)
+```
+
+
+```{r}
+confint(model5)
+```
+
+
+```{r}
+plot(lm(Total.Claim.Amount ~ Income + Monthly.Premium.Auto + Customer.Lifetime.Value + Response + Education + Coverage, data = df))
+```
+
+```{r}
+plot(rstudent(model5))
+```
+
+
+```{r}
+library(MASS)
+
+```
+
+
+```{r}
+set.seed(55)
+cluster.df <- kmeans(df[, 22, 6], 3, nstart = 20)
+cluster.df
+```
+
+
+```{r}
+table(cluster.df$cluster, df$Education)
+````
+
+```{r}
+cluster.df$cluster <- as.factor(cluster.df$cluster)
+```
+
+```{r}
+
+ggplot(df, aes(Education, Total.Claim.Amount, color = cluster.df$cluster)) + geom_point() + ggtitle("Cluster of Education and Total Claim Amount")
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+````
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+````
