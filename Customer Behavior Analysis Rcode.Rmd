@@ -1,5 +1,5 @@
 ---
-title: "502 Project"
+title: "IBM Customer Behavior Analysis"
 output: word_document
 date: "2022-11-15"
 ---
